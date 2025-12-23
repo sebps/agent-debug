@@ -1,0 +1,19 @@
+{
+  "name": "agent-debug",
+  "version": "1.0.0",
+  "description": "One-line visual debugger for LangGraph",
+  "main": "lib/index.js",
+  "type": "module",
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "open": "^10.0.0"
+  },
+  "keywords": ["langgraph", "langchain", "debugger", "visualization"],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -1,0 +1,104 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import { graph } from '../sample/agent.js'; 
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+ 
+app.get('/', async (req, res) => {
+    // 301 is a permanent redirect, use 302 if this is only temporary
+    res.redirect(301, 'https://agent-debug.netlify.app');
+});
+
+app.get('/graph', async (req, res) => {
+    try {
+        // Ensure the compiled graph instance exists
+        if (!graph) {
+            return res.status(503).json({ error: "Graph instance not initialized" });
+        }
+
+        // Use the recommended async method
+        const graphStructure = await graph.getGraphAsync({ xray: true });
+
+        // Handle nodes: convert to Array if it's an Object/Map
+        const rawNodes = Array.isArray(graphStructure.nodes) 
+            ? graphStructure.nodes 
+            : Object.values(graphStructure.nodes);
+
+        const nodes = rawNodes.map(node => ({
+            id: node.id,
+            type: node.type,
+            label: node.data?.name || node.id,
+            isBoundary: node.id === '__start__' || node.id === '__end__'
+        }));
+
+        // Handle edges: convert to Array if necessary
+        const rawEdges = Array.isArray(graphStructure.edges) 
+            ? graphStructure.edges 
+            : Object.values(graphStructure.edges);
+
+        const edges = rawEdges.map((edge, index) => ({
+            id: `e${index}`,
+            source: edge.source,
+            target: edge.target,
+            conditional: edge.conditional ?? false
+        }));
+
+        // Return pure JSON structure for the frontend
+        res.json({
+            nodes,
+            edges
+        });
+
+    } catch (error) {
+        console.error("Graph serialization error:", error);
+        res.status(500).json({ 
+            error: "Failed to parse graph structure", 
+            details: error.message 
+        });
+    }
+});
+
+app.post('/chat', async (req, res) => {
+    const { input } = req.body;
+
+    // Configuration des headers pour Server-Sent Events (SSE)
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders(); // Établit la connexion immédiatement
+
+    try {
+        // Invocation de l'agent avec le stream de LangGraph
+        // On utilise .stream() pour obtenir les mises à jour en temps réel
+        const stream = await graph.stream(
+            { messages: [["user", input]] },
+            { streamMode: "updates" } // Ou "values" selon votre besoin
+        );
+
+        for await (const chunk of stream) {
+            // Extraction de la donnée du chunk LangGraph
+            const data = JSON.stringify(chunk);
+            
+            // Écriture dans le flux SSE (format obligatoire: data: <json>\n\n)
+            res.write(`data: ${data}\n\n`);
+        }
+
+        // Signal de fin de flux
+        res.write('event: end\ndata: done\n\n');
+        res.end();
+    } catch (error) {
+        console.error("Agent Stream Error:", error);
+        res.write(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.end();
+    }
+});
+
+const PORT = 3001;
+app.listen(PORT, () => {
+    console.log(`Dev API Route open on http://localhost:${PORT}`);
+});

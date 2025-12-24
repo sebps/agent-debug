@@ -1,19 +1,25 @@
 {
   "name": "agent-debug",
   "version": "1.0.0",
-  "description": "One-line visual debugger for LangGraph",
+  "description": "Pluggable visual debugger for LangGraph-based agents.",
   "main": "lib/index.js",
   "type": "module",
   "files": [
     "lib",
-    "dist"
+    "dist/ui"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "open": "^10.0.0"
   },
+  "peerDependencies": {
+    "@langchain/langgraph": ">=0.0.1"
+  },
   "keywords": ["langgraph", "langchain", "debugger", "visualization"],
-  "author": "Your Name",
+  "author": "sebps",
   "license": "MIT"
 }

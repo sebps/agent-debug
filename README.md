@@ -36,7 +36,7 @@ debug(agent, 3001)
 ```
 
 # UI
-![UI](./screenshot.png)
+![UI](https://github.com/sebps/agent-debug-workspace/blob/main/screenshot.png)
 
 # Local development
 ```bash 
